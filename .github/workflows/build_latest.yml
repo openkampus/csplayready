@@ -1,4 +1,4 @@
-name: Build Latest Release
+name: Build Latest Release Termux
 
 env:
   DOTNET_SDK_VERSION: "9.0.*"
@@ -7,36 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        arch: [x64, arm64]
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
-          
-      - name: Build Windows
-        run: dotnet publish csplayready -c Release -r win-${{ matrix.arch }} --self-contained true
-        
-      - name: Zip Release
-        run: Compress-Archive -Path "csplayready/bin/Release/net9.0/win-${{ matrix.arch }}/publish/*" -DestinationPath "csplayready-win-${{ matrix.arch }}.zip"
-        
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: csplayready-win-${{ matrix.arch }}
-          path: csplayready-win-${{ matrix.arch }}.zip
-
-  build-linux:
+  build-linux-arm64:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [x64]
     steps:
       - uses: actions/checkout@v3
       
@@ -45,73 +17,14 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
           
-      - name: Build Linux
-        run: dotnet publish csplayready -c Release -r linux-${{ matrix.arch }} --self-contained true
+      - name: Build for Linux ARM64
+        run: dotnet publish csplayready -c Release -r linux-arm64 --self-contained true
         
-      - name: Tar Release
-        run: tar -czf csplayready-linux-${{ matrix.arch }}.tar.gz -C csplayready/bin/Release/net9.0/linux-${{ matrix.arch }}/publish/ .
+      - name: Tar ARM64 Release
+        run: tar -czf csplayready-linux-arm64.tar.gz -C csplayready/bin/Release/net9.0/linux-arm64/publish/ .
         
-      - name: Upload Artifact
+      - name: Upload ARM64 Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: csplayready-linux-${{ matrix.arch }}
-          path: csplayready-linux-${{ matrix.arch }}.tar.gz
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
-          
-      - name: Build macOS (x64)
-        run: dotnet publish csplayready -c Release -r osx-x64 --self-contained true
-        
-      - name: Build macOS (arm64)
-        run: dotnet publish csplayready -c Release -r osx-arm64 --self-contained true
-        
-      - name: Tar Release (x64)
-        run: tar -czf csplayready-mac-x64.tar.gz -C csplayready/bin/Release/net9.0/osx-x64/publish/ .
-        
-      - name: Tar Release (arm64)
-        run: tar -czf csplayready-mac-arm64.tar.gz -C csplayready/bin/Release/net9.0/osx-arm64/publish/ .
-        
-      - name: Upload Artifact (x64)
-        uses: actions/upload-artifact@v3
-        with:
-          name: csplayready-mac-x64
-          path: csplayready-mac-x64.tar.gz
-          
-      - name: Upload Artifact (arm64)
-        uses: actions/upload-artifact@v3
-        with:
-          name: csplayready-mac-arm64
-          path: csplayready-mac-arm64.tar.gz
-
-  create-release:
-    needs: [build-windows, build-linux, build-macos]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
-        
-      - name: Create Release and Upload Assets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create v${{ github.run_number }} \
-            --draft \
-            --title "Release v${{ github.run_number }}" \
-            --notes "Automated release v${{ github.run_number }}" \
-            --repo ${{ github.repository }}
-            
-          for file in */*; do
-            if [ -f "$file" ]; then
-              gh release upload v${{ github.run_number }} "$file" --repo ${{ github.repository }}
-            fi
-          done
+          name: csplayready-linux-arm64
+          path: csplayready-linux-arm64.tar.gz
